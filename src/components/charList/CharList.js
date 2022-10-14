@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import MarvelService from '../../services/service';
 
 import Spinner from '../spinner/Spinner';
@@ -8,100 +8,76 @@ import './charList.scss';
 
 import PropTypes from 'prop-types';
 
-class CharList extends Component {
-    state = {
-        chars : [],
-        loading: true,
-        error: false,
-        offset: 180,
-        loadingNewChars: false,
-        charsCapReached: false,
-        bottomReached: false,
-    }
+const CharList = (props) => {
+
+    const [chars, setChars] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [offset, setOffset] = useState(180);
+    const [loadingNewChars, setLoadingNewChars] = useState(true);
+    const [charsCapReached, setCharsCap] = useState(false);
+
     //this module was initially created with an intention to add pagination - on click of the button, the list of the character had to be expanded.
     //but in order to have some more practice I added pagination on scroll, so now it has both listeners
 
-    service = new MarvelService();
+    const service = new MarvelService();
 
-    componentDidMount() {
-        this.requestCharacters();
-        window.addEventListener('scroll', this.checkIfBottom)
-        window.addEventListener('scroll', this.newCharsOnScroll);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('scroll', this.newCharsOnScroll);
-        window.removeEventListener('scroll', this.newCharsOnScroll);
-    }
-
-    newCharsOnScroll = () => {
-        const {bottomReached, loadingNewChars, charsCapReached} = this.state;
-
-        if (bottomReached && !loadingNewChars && !charsCapReached) {
-            this.requestCharacters(this.state.offset);
-        }
-    }
-
-    checkIfBottom = () => {
+    const newCharsOnScroll = () => {
         if (window.scrollY + document.documentElement.clientHeight >= document.body.scrollHeight) {
-            this.setState({
-                bottomReached: true
-            })
+            setLoadingNewChars(true);
         }
     }
 
-    requestCharacters(offset) {
-        this.onLoading();
-        this.service.getAllCharacters(offset)
-            .then(res => this.onFinishedLoading(res))
-            .catch(this.onError)
+    useEffect(() => {
+        if (loadingNewChars && !charsCapReached) {
+            requestCharacters();
+        }
+    }, [loadingNewChars]);
+
+    useEffect(() => {
+        window.addEventListener('scroll', newCharsOnScroll)
+        return () => {
+            window.removeEventListener('scroll', newCharsOnScroll);
+        }
+    })
+
+    const requestCharacters = () => {
+        // setLoadingNewChars(true);
+        service.getAllCharacters(offset)
+            .then(res => onFinishedLoading(res))
+            .catch(onError)
     }
 
-    onLoading = () => {
-        this.setState({
-            loadingNewChars: true
-        })
-    }
-
-    onFinishedLoading = (newCharacters) => {
+    const onFinishedLoading = (newCharacters) => {
 
         let ended = false;
         if (newCharacters.length < 9) ended = true;
 
-        this.setState(({chars, offset}) => ({
-            chars: [...chars, ...newCharacters],
-            loading: false,
-            offset : offset + 9,
-            loadingNewChars: false,
-            charsCapReached: ended,
-            bottomReached: false
-        }))
+        setChars(chars => [...chars, ...newCharacters]);
+        setLoading(false);
+        setOffset(offset => offset + 9);
+        setLoadingNewChars(false);
+        setCharsCap(ended);
     }
 
-    onError = () => {
-        this.setState({
-            error: true,
-            loading: false
-        })
+    const onError = () => {
+        setError(true);
+        setLoading(false);
+        setLoadingNewChars(false);
     }
 
+    const refsItems = useRef([]);
 
-    refsItems = [];
-    
-    setRef = (elem) => {
-        this.refsItems.push(elem);
-    };
-
-    focusOnItem = (i) => {
-       this.refsItems.forEach(item => {
+    const focusOnItem = (id) => {
+       refsItems.current.forEach(item => {
            item.classList.remove('char__item_selected');
        })
-       this.refsItems[i].classList.add('char__item_selected');
-       this.refsItems[i].focus();
+       refsItems.current[id].classList.add('char__item_selected');
+       refsItems.current[id].focus();
     }
 
-    createContent() {
-        const blocks = this.state.chars.map((item, i) => {
+    const createContent = (arr) => {
+        const blocks = arr.map((item, i) => {
 
             let imgStyles = {'objectFit':'cover'};
 
@@ -113,15 +89,15 @@ class CharList extends Component {
                 <li className="char__item" 
                 tabIndex={0}
                 key={item.id}
-                ref={this.setRef}
+                ref={el => refsItems.current[i] = el}
                 onClick={() => {
-                    this.props.onSelectChar(item.id);
-                    this.focusOnItem(i)
+                    props.onSelectChar(item.id);
+                    focusOnItem(i)
                     }}
                 onKeyPress={(e) => {
                     if (e.key === ' ' || e.key === 'Enter') {
-                        this.props.onSelectChar(item.id);
-                        this.focusOnItem(i);
+                        props.onSelectChar(item.id);
+                        focusOnItem(i);
                     }
                 }}>
                     <img src={item.thumbnail} alt={item.name} style={imgStyles}/>
@@ -137,29 +113,24 @@ class CharList extends Component {
         )
     }
 
-    render() {
+    const spinner = loading ? <Spinner/> : null;
+    const errorBlock = error ? <Error/> : null;
+    const content = !(loading || error) ? createContent(chars) : null;
 
-        const {loading, error, offset, loadingNewChars, charsCapReached} = this.state
-
-        const spinner = loading ? <Spinner/> : null;
-        const errorBlock = error ? <Error/> : null;
-        const content = !(loading || error) ? this.createContent() : null;
-
-        return (
-            <div className="char__list">
-                {spinner}
-                {errorBlock}
-                {content}
-                <button className="button button__main button__long"
-                        onClick={() => this.requestCharacters(offset)}
-                        disabled={loadingNewChars}
-                        style={{'display' : charsCapReached ? 'none' : 'block'}}
-                        tabIndex={0}>
-                    <div className="inner">load more</div>
-                </button>
-            </div>
+    return (
+        <div className="char__list">
+            {spinner}
+            {errorBlock}
+            {content}
+            <button className="button button__main button__long"
+                    onClick={() => requestCharacters(offset)}
+                    disabled={loadingNewChars}
+                    style={{'display' : charsCapReached ? 'none' : 'block'}}
+                    tabIndex={0}>
+                <div className="inner">load more</div>
+            </button>
+        </div>
         )
-    }
 }
 
 CharList.propTypes = {
