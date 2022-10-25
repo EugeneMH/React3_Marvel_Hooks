@@ -3,18 +3,19 @@ import Error from '../error/Error';
 
 class ErrorBoundary extends Component {
     state = {
-        error:false
+        hasError: false
     }
 
     componentDidCatch(error, errorInfo) {
         console.log(error, errorInfo);
-        this.setState({
-            error: true
-        })
     }
 
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+      }
+
     render() {
-        if (this.state.error) {
+        if (this.state.hasError) {
             return (
                 <Error/>
             )

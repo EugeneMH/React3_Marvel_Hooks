@@ -1,39 +1,48 @@
-import {useState} from 'react';
+import {lazy, Suspense} from 'react';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import AppHeader from "../appHeader/AppHeader";
-import RandomChar from "../randomChar/RandomChar";
-import CharList from "../charList/CharList";
-import CharInfo from "../charInfo/CharInfo";
-import ErrorBoundary from '../errorBoundary/ErrorBoundary'
 
-import decoration from '../../resources/img/vision.png';
+import Spinner from '../spinner/Spinner';
+
+import './App.scss';
+
+
+//I was training with dynamic imports. I know it's not necessary as this project is small
+const Page404 = lazy(() => import('../pages/404'));
+const MainPage = lazy(() => import('../pages/MainPage'));
+const ComicsPage = lazy(() => import('../pages/ComicsPage'));
+const SingleCharLayout = lazy(() => import('../pages/singleCharacterLayout/SingleCharacterLayout'));
+const SingleComicLayout = lazy(() => import('../pages/singleComicLayout/SingleComicLayout'));
+const SinglePage = lazy(() => import('../pages/SinglePage'));
+
+
 
 const App = () => {
 
-    const [charSelectedId, setChar] = useState(null);
-
-    const onSelectChar = (id) => {
-        setChar(id)
-    }
+    // let location = useLocation();
 
     return (
-        <div className="app">
-            <AppHeader/>
-            <main>
-                <ErrorBoundary>
-                    <RandomChar/>
-                </ErrorBoundary>
-                <div className="char__content">
-                    <ErrorBoundary>
-                        <CharList onSelectChar={onSelectChar}/>
-                    </ErrorBoundary>
-                    <ErrorBoundary>
-                        <CharInfo id={charSelectedId}/>
-                    </ErrorBoundary>
+        <Suspense fallback={<Spinner/>}>
+            <Router>
+                <div className="app">
+                    <AppHeader/>
+                    <main>
+                        <Routes>
+                            <Route path="/" element={<MainPage className="page"/>}/>
+                            <Route path="*" element={<Page404 className="page"/>}/>
+                            <Route path="/comics" element={<ComicsPage/>}/>
+                            <Route path="/characters/:id" element={<SinglePage 
+                                                                Component={SingleCharLayout} 
+                                                                dataType='character'/>}/>
+                            <Route path="/comics/:id" element={<SinglePage 
+                                                                Component={SingleComicLayout} 
+                                                                dataType='comic'/>}/>
+                        </Routes> 
+                    </main>
                 </div>
-                <img className="bg-decoration" src={decoration} alt="vision"/>
-            </main>
-        </div>
+            </Router>
+        </Suspense>
     )
 }
 

@@ -1,5 +1,7 @@
 import {useState, useEffect} from 'react';
-import MarvelService from '../../services/service';
+import useMarvelService from '../../services/service';
+
+import { Link } from 'react-router-dom';
 
 import Skeleton from '../skeleton/Skeleton';
 import Error from '../error/Error';
@@ -12,62 +14,43 @@ import PropTypes from 'prop-types';
 const CharInfo = (props) => {
 
     const [char, setChar] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(false);
 
-    const service = new MarvelService();
+    const {loading, error, getCharacter, clearError} = useMarvelService();
 
     useEffect( () => {
         createCharacter();
     }, [props.id] )
-
-    // componentDidUpdate(prevProps) {
-    //     if (this.props.id !== prevProps.id) {
-    //         this.createCharacter();
-    //     }
-    // }
     
     const createCharacter = () => {
-
+        clearError();
         const {id} = props;
 
         if(!id) {
             return;
         }
-
-        onLoading();
-
-        service.getCharacter(id)   
+        getCharacter(id)   
         .then(res => onFinishedLoading(res))
-        .catch(onError)
     }
 
     const onFinishedLoading = (char) => {
-        setLoading(false);
         setChar(char);
     }
 
-    const onError = () => {
-        setError(true);
-        setLoading(false);
-    }
-
-    const onLoading = () => {
-        setLoading(true);
-    }
-
-    const skeleton = !(loading || char || error) ? <Skeleton/> : null;
+    const skeleton = !(loading || char || error) ? <Skeleton name="Please select a character to see information"/> : null;
     const errorMessage = error ? <Error/> : null;
-    const spinner = loading ? <Spinner/> : null;
+    const spinner = loading && !error ? <Spinner/> : null;
     const content = !(loading || error || !char) ? <Content char={char}/> : null
 
     return (
-        <div className="char__info">
-            {skeleton}
-            {content}
-            {errorMessage}
-            {spinner}
-        </div>
+        <>
+            <div className="char__info">
+                {skeleton}
+                {content}
+                {errorMessage}
+                {spinner} 
+            </div>
+
+        </>
     )
 
 }
@@ -105,12 +88,15 @@ const Content = ({char}) => {
             <div className="char__comics">Comics:</div>
             <ul className="char__comics-list">
                 {comics.length > 0 ? null : "Unfortunately, we can't find the comics for this character"}
-                {comics.map( (item, i) => {                
+                {comics.map( (item, i) => {     
+                    
+                    const filteredComicID = item.resourceURI.replace(/\D/g, '').slice(1);    
+                
                     if (i < 10) {
                         return (
-                            <li className="char__comics-item" key={i}>
+                            <Link className="char__comics-item" key={i} to={`/comics/${filteredComicID}`}>
                                 {item.name}
-                            </li>
+                            </Link>
                         )
                     } else return null;
                 })}

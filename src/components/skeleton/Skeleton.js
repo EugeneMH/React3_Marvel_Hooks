@@ -1,9 +1,9 @@
 import './skeleton.scss';
 
-const Skeleton = () => {
+const Skeleton = (props) => {
     return (
         <>
-            <p className="char__select">Please select a character to see information</p>
+            <p className="char__select">{props.name}</p>
             <div className="skeleton">
                 <div className="pulse skeleton__header">
                     <div className="pulse skeleton__circle"></div>
