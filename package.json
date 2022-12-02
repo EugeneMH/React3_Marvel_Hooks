@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "engines": {
     "node": "16.x",
-    "npm": "8.6.0"
+    "npm": "8.x"
   },
   "private": true,
   "dependencies": {
@@ -21,7 +21,8 @@
     "sass": "^1.38.0",
     "serve": "^13.0.2",
     "web-vitals": "^1.0.1",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "type-fest": "^0.13.1"
   },
   "scripts": {
     "start-dev": "react-scripts start",
