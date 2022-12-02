@@ -1,11 +1,10 @@
+/* eslint-disable no-unreachable */
 import {useState, useEffect} from 'react';
 import useMarvelService from '../../services/service';
 
 import { Link } from 'react-router-dom';
 
-import Skeleton from '../skeleton/Skeleton';
-import Error from '../error/Error';
-import Spinner from '../spinner/Spinner';
+import setContent from '../../utils/setContent';
 
 import './charInfo.scss';
 
@@ -15,39 +14,35 @@ const CharInfo = (props) => {
 
     const [char, setChar] = useState(null);
 
-    const {loading, error, getCharacter, clearError} = useMarvelService();
+    const {process, setProcess, getCharacter, clearError} = useMarvelService();
 
-    useEffect( () => {
+    useEffect( () => {  
         createCharacter();
+        // eslint-disable-next-line
     }, [props.id] )
     
     const createCharacter = () => {
-        clearError();
+        
         const {id} = props;
 
         if(!id) {
             return;
         }
+
+        clearError();
         getCharacter(id)   
         .then(res => onFinishedLoading(res))
+        .then(() => setProcess('confirmed'))
     }
 
     const onFinishedLoading = (char) => {
         setChar(char);
     }
 
-    const skeleton = !(loading || char || error) ? <Skeleton name="Please select a character to see information"/> : null;
-    const errorMessage = error ? <Error/> : null;
-    const spinner = loading && !error ? <Spinner/> : null;
-    const content = !(loading || error || !char) ? <Content char={char}/> : null
-
     return (
         <>
             <div className="char__info">
-                {skeleton}
-                {content}
-                {errorMessage}
-                {spinner} 
+                {setContent(process, Content, char)}
             </div>
 
         </>
@@ -55,9 +50,9 @@ const CharInfo = (props) => {
 
 }
 
-const Content = ({char}) => {
+const Content = ({data}) => {
     
-    const {name, description, thumbnail, homepage, wiki, comics} = char;
+    const {name, description, thumbnail, homepage, wiki, comics} = data;
 
     let imgStyle = {'objectFit':'cover'};
 

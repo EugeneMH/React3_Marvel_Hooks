@@ -1,7 +1,6 @@
 import {useState, useEffect} from 'react';
-import Spinner from '../spinner/Spinner';
-import Error from '../error/Error';
 import useMarvelService from '../../services/service';
+import setContent from '../../utils/setContent';
 
 import './randomChar.scss';
 
@@ -13,9 +12,10 @@ const RandomChar = () => {
 
     useEffect(() => {
         getRandomCharacter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [] )
 
-    const {loading, error, getCharacter, clearError} = useMarvelService();
+    const {process, setProcess, getCharacter, clearError} = useMarvelService();
 
     const onCharLoaded = (char) => {
         setChar(char);
@@ -24,20 +24,14 @@ const RandomChar = () => {
     const getRandomCharacter = () => {
         clearError();
         const id = Math.floor(Math.random() * (1011400 - 1011000) + 1011000);
-        // const id = 1;
         getCharacter(id)
             .then(res => {onCharLoaded(res)})
+            .then(() => setProcess('confirmed'))
     }
-
-    const spinner = loading ? <Spinner/> : null;
-    const errorImg = error ? <Error/> : null; 
-    const block = !(loading || error) ? <RandomCharBlock char={char}/> : null;
 
     return (
         <div className="randomchar">
-            {spinner}
-            {errorImg}
-            {block}
+            {setContent(process, RandomCharBlock, char)}
             <div className="randomchar__static">
                 <p className="randomchar__title">
                     Random character for today!<br/>
@@ -55,8 +49,8 @@ const RandomChar = () => {
     )
 }
 
-const RandomCharBlock = ({char}) => {
-    const {name, description, thumbnail, homepage, wiki} = char;
+const RandomCharBlock = ({data}) => {
+    const {name, description, thumbnail, homepage, wiki} = data;
 
     let imgStyle = {'objectFit':'cover'};
 

@@ -32,6 +32,7 @@ const MainPage = () => {
                 </ErrorBoundary>
                 <ErrorBoundary>
                     <div style={{position: '-webkit-sticky',
+                                // eslint-disable-next-line no-dupe-keys
                                 position: 'sticky',
                                 top:'0px'}}>
                         <ErrorBoundary>

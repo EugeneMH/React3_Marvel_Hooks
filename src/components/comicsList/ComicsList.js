@@ -2,10 +2,24 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Skeleton from '../skeleton/Skeleton'
 import Error from '../error/Error';
-
 import './comicsList.scss';
 
 import useMarvelService from '../../services/service';
+
+const setListContent = (process, Component, loadingNewComics, skeleton) => {
+    switch (process) {
+        case 'waiting': 
+            return skeleton;
+        case 'loading':
+            return loadingNewComics ? <><Component/>{skeleton}</> : skeleton;
+        case 'error':
+            return <Error/>;
+        case 'confirmed':
+            return <Component/>;
+        default: 
+            throw new Error('Unexpected process state');
+    }
+}
 
 const ComicsList = () => {
 
@@ -14,10 +28,11 @@ const ComicsList = () => {
     const [comics, setComics] = useState([])
     const [offset, setOffset] = useState(10)
 
-    const {loading, error, getAllComics, clearError} = useMarvelService();
+    const {process, setProcess, getAllComics, clearError} = useMarvelService();
 
     useEffect(() => {
         requestComics(offset, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const requestComics = (offset, initial) => {
@@ -27,7 +42,7 @@ const ComicsList = () => {
         getAllComics(offset)
         .then(res => {
             onFinishedLoading(res)})
-        .catch(setLoadingNewComics(false))
+        .then(() => setProcess('confirmed'))
     }
 
     const onFinishedLoading = (newComics) => {
@@ -65,23 +80,18 @@ const ComicsList = () => {
         })
     }
 
-    const content = createContent(comics);
-    const skeleton = loading ? createLoading() : null;
-    const errorMessage = error && !loading ? <Error/> : null;
+    const loading = createLoading();
     
-
     return (
         <>
-            {errorMessage}
+
             <div className="comics__list">   
                 <ul className="comics__grid">
-                    {content}
-                    {skeleton}
+                {setListContent(process, () => createContent(comics), loadingNewComics, loading)}
                 </ul>
-                <button className="button button__main button__long">
+                <button className="button button__main button__long" disabled={loadingNewComics}>
                     <div className="inner" 
                     onClick={() => requestComics(offset, false)}
-                    disabled={loadingNewComics}
                     style={{'display' : comicsCapReached ? 'none' : 'block'}}>load more</div>
                 </button>
             </div>

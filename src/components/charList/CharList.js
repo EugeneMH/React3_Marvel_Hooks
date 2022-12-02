@@ -1,27 +1,39 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import useMarvelService from '../../services/service';
-
 import Spinner from '../spinner/Spinner';
 import Error from '../error/Error';
-
-import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 import './charList.scss';
 
 import PropTypes from 'prop-types';
 
+const setListContent = (process, Component, loadingNewChars) => {
+    switch (process) {
+        case 'waiting': 
+            return <Spinner/>;
+        case 'loading':
+            return loadingNewChars ? <Component/> : <Spinner/>;
+        case 'error':
+            return <Error/>;
+        case 'confirmed':
+            return <Component/>;
+        default: 
+            throw new Error('Unexpected process state');
+    }
+}
+
 const CharList = (props) => {
+
+    const {getAllCharacters, process, setProcess} = useMarvelService();
 
     const [chars, setChars] = useState([]);
     const [offset, setOffset] = useState(180);
     const [loadingNewChars, setLoadingNewChars] = useState(true);
     const [charsCapReached, setCharsCap] = useState(false);
 
-
-    const {loading, error, getAllCharacters} = useMarvelService();
-
     useEffect(() => {
         requestCharacters(offset, true);   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const requestCharacters = (offset, initial) => {
@@ -29,7 +41,7 @@ const CharList = (props) => {
  
         getAllCharacters(offset)
             .then(res => onFinishedLoading(res))
-            .catch(setLoadingNewChars(false))
+            .then(() => setProcess('confirmed'))
     }
 
     const onFinishedLoading = (newCharacters) => {
@@ -63,52 +75,44 @@ const CharList = (props) => {
                 imgStyles = {'objectFit':'unset'}
             }
             
-
             return (
-                <CSSTransition  
-                timeout={500} 
-                classNames="my-node">
-                    <li className="char__item" 
-                    tabIndex={0}
-                    key={item.id}
-                    ref={el => refsItems.current[i] = el}
-                    onClick={() => {
+                <li className="char__item" 
+                key={item.id}
+                tabIndex={0}
+                ref={el => refsItems.current[i] = el}
+                onClick={() => {
+                    props.onSelectChar(item.id);
+                    focusOnItem(i)
+                    }}
+                onKeyPress={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
                         props.onSelectChar(item.id);
-                        focusOnItem(i)
-                        }}
-                    onKeyPress={(e) => {
-                        if (e.key === ' ' || e.key === 'Enter') {
-                            props.onSelectChar(item.id);
-                            focusOnItem(i);
-                        }
-                    }}>
-                        <img src={item.thumbnail} alt={item.name} style={imgStyles}/>
-                        <div className="char__name">{item.name}</div>
-                    </li>
-                </CSSTransition>
+                        focusOnItem(i);
+                    }
+                }}>
+                    <img src={item.thumbnail} alt={item.name} style={imgStyles}/>
+                    <div className="char__name">{item.name}</div>
+                </li>
             )
         })
 
         return (
             <ul className="char__grid" >
-                <TransitionGroup component={null}>
-                    {blocks}
-                </TransitionGroup>
+                {blocks}
             </ul>
         )
     }
 
-    const spinner = loading && !loadingNewChars ? <Spinner/> : null;
-    const errorBlock = error ? <Error/> : null;
-    const content = createContent(chars);
+    const content = useMemo(() => {
+        return setListContent(process, () => createContent(chars), loadingNewChars)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [process])
 
     return (
         <div className="char__list">
-            {spinner}
-            {errorBlock}
             {content}
             <button className="button button__main button__long"
-                    onClick={() => requestCharacters(offset)}
+                    onClick={() => requestCharacters(offset, false)}
                     disabled={loadingNewChars}
                     style={{'display' : charsCapReached ? 'none' : 'block'}}
                     tabIndex={0}>
