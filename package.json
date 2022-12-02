@@ -20,6 +20,7 @@
     "react-transition-group": "^4.4.5",
     "sass": "^1.38.0",
     "serve": "^13.0.2",
+    "sha512": "^0.0.1",
     "web-vitals": "^1.0.1"
   },
   "scripts": {
